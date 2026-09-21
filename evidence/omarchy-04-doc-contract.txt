@@ -1,0 +1,25 @@
+# The documented behaviour this machine violates
+# captured:   2026-09-20T19:19:42+01:00 on omarchy, kernel 7.2.5-3-omarchy
+# capture.sh: odd/omarchy-audio-upstream/evidence/capture.sh (re-runnable, read-only)
+# linux source: torvalds/linux master a10a019dd4c7c57bef6b8dda962c8881ad220af2 (https://raw.githubusercontent.com/torvalds/linux/a10a019dd4c7c57bef6b8dda962c8881ad220af2/)
+# omarchy source: omacom/omarchy quattro e38c1d1289252d2adb96372eeac48d02e489c5b7 (https://raw.githubusercontent.com/omacom/omarchy/quattro/)
+#   audio-tuning.md sha256 885e4ebf5811254370ba5b4aea36661d1aad40a5e115c967ffbf9c8d5064405d
+
+137-  volume keys, the output switcher's OSD and the audio panel all use it, so they
+138-  cannot disagree. Resolving the *current default* rather than "whatever a tuning
+139-  fronts" is what keeps it correct when headphones or HDMI are selected while a
+140-  tuning still exists.
+141:- **The fronted sink is hidden.** The tuning and the physical speakers both exist
+142-  in the graph, and selecting the physical one would only bypass the tuning. So
+143-  `omarchy-audio-sink-availability` reports it unavailable and
+144-  `omarchy-audio-output-switch` skips it, leaving one speaker entry in the panel.
+145-  A WirePlumber smart filter would remove the need for both — it leaves the real
+146-  device as the default output — but on PipeWire 1.6.8 / WirePlumber 0.5.15 the
+147-  graph loads and links correctly as a smart filter and then passes audio through
+
+$ grep -rn 'fronted-sink' /usr/share/omarchy/   (who consumes the answer)
+
+$ omarchy-audio-output-switch uses the same answer:
+7:fronted=$(omarchy-audio-tuning fronted-sink 2>/dev/null || true)
+10:  jq --arg fronted "$fronted" '[.[]
+12:    | select($fronted == "" or .name != $fronted)]')

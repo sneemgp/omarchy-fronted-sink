@@ -1,0 +1,98 @@
+# The primitive the fix reuses already exists in the same script family
+# captured:   2026-09-20T19:19:42+01:00 on omarchy, kernel 7.2.5-3-omarchy
+# capture.sh: odd/omarchy-audio-upstream/evidence/capture.sh (re-runnable, read-only)
+# linux source: torvalds/linux master a10a019dd4c7c57bef6b8dda962c8881ad220af2 (https://raw.githubusercontent.com/torvalds/linux/a10a019dd4c7c57bef6b8dda962c8881ad220af2/)
+# omarchy source: omacom/omarchy quattro e38c1d1289252d2adb96372eeac48d02e489c5b7 (https://raw.githubusercontent.com/omacom/omarchy/quattro/)
+#   omarchy-audio-output-sink sha256 23c262e236aed45d2b614d5a309ed38bf42e2ec17974f91effce128085bc49a4
+#   omarchy-audio-tuning sha256 dd596e3e4ef30206fb610b708face1b861bab07ca49db5da79a9dc7facbdb162
+
+== installed omarchy-audio-output-sink (resolves a DSP sink to its target) ==
+#!/bin/bash
+
+# omarchy:summary=Print the sink whose volume and mute a given output really uses
+# omarchy:args=[sink-name]
+# omarchy:group=audio
+# omarchy:examples=omarchy audio output sink | omarchy audio output sink omarchy_speaker_tuning
+
+set -uo pipefail
+
+# A DSP sink -- a speaker tuning filter-chain, or EasyEffects -- can be the
+# selected output without being where loudness lives. Changing its volume alters
+# the level going *into* the processing: the display moves while the speakers do
+# not, and on a chain with a compressor or limiter the tone changes too. Resolve
+# through it to the physical sink it feeds.
+#
+# With no argument this resolves the current default output, so when headphones or
+# HDMI are selected it returns those, not the speakers a tuning happens to front.
+# Callers that need to describe some *other* output -- an output switcher naming
+# the next one in the rotation -- pass that sink explicitly.
+
+sink="${1:-$(pactl get-default-sink 2>/dev/null)}"
+
+if [[ -z $sink || $sink == alsa_output.* ]]; then
+  printf '%s\n' "$sink"
+  exit 0
+fi
+
+# A DSP sink feeds its physical output through a stream of its own; follow that
+# stream down to the sink underneath.
+downstream="$(pactl list sink-inputs 2>/dev/null |
+  awk -v virt="$sink" '
+    /^Sink Input #/ {target = ""}
+    /^[[:space:]]*Sink:/ {target = $2}
+    /node\.name = / {
+      name = $0
+      sub(/.*node\.name = "/, "", name)
+      sub(/"$/, "", name)
+      if (index(name, virt) == 1 && target != "") {print target; exit}
+    }
+    /application\.name = "EasyEffects"/ {
+      if (virt == "easyeffects_sink" && target != "") {print target; exit}
+    }')"
+
+if [[ -n $downstream ]]; then
+  name="$(pactl list sinks short 2>/dev/null |
+    awk -v id="$downstream" '$1 == id {print $2; exit}')"
+  if [[ -n $name ]]; then
+    printf '%s\n' "$name"
+    exit 0
+  fi
+fi
+
+# Nothing resolvable downstream -- the DSP sink may simply be idle and unlinked.
+# Fall back to the sink itself so callers still have something to act on.
+printf '%s\n' "$sink"
+
+== omarchy-audio-tuning: the helper that already does this ==
+tuning_downstream_sink() {
+  omarchy-audio-output-sink "$sink_name" 2>/dev/null
+}
+
+== omarchy-audio-tuning: the branch that ignores it ==
+  fronted-sink)
+    # The tuning is a virtual sink in front of the real speakers, so both exist in
+    # the graph. Selecting the physical one would only bypass the tuning, so
+    # callers keep it out of the output list while the tuning is up. This answers
+    # "is a tuning in place", not "where should volume go" -- for the latter see
+    # omarchy-audio-output-sink, which follows the current default output.
+    tuning_present || exit 1
+    tuned_hardware_sink
+    ;;
+
+== omarchy-audio-tuning: what it answers from instead (needs a shipped tuning) ==
+tuned_hardware_sink() {
+  local dir found
+  dir="$(tuning_match)" || return 1
+  unset sink_pattern
+  # shellcheck disable=SC1090
+  source "$dir/tuning.conf"
+  [[ -n ${sink_pattern:-} ]] || return 1
+  found="$(sink_matching "$sink_pattern")"
+  [[ -n $found ]] || return 1
+  printf '%s\n' "$found"
+}
+
+# Note the idle case, which the fix must guard: with the tuning sink present
+# but its chain unlinked, omarchy-audio-output-sink falls back to printing the
+# sink itself. Without a guard the availability script would then mark the
+# TUNING sink unavailable -- worse than the bug being fixed.

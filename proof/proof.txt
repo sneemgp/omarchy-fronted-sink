@@ -1,0 +1,59 @@
+# Proof: patched omarchy-audio-tuning resolves the fronted sink on this machine
+# captured: 2026-09-21T21:02:55+01:00 on omarchy, kernel 7.2.5-3-omarchy
+# script under test : /home/hga/odd/omarchy-audio-upstream/publish/omarchy-repo/proof/../bin/omarchy-audio-tuning
+# installed script  : /usr/share/omarchy/bin/omarchy-audio-tuning
+fatal: cannot change to '/home/hga/odd/omarchy-audio-upstream/publish/omarchy-repo/proof/../repo': No such file or directory
+fatal: cannot change to '/home/hga/odd/omarchy-audio-upstream/publish/omarchy-repo/proof/../repo': No such file or directory
+# commit            :  on 
+
+## setup
+$ omarchy audio tuning status        # a hand-installed tuning, no shipped one matches
+Installed:    yes (/home/hga/.config/pipewire/omarchy-speaker-tuning.conf.d/90-tuning.conf)
+Host service: active (enabled)
+Tuning sink:  present
+Default sink: alsa_output.pci-0000_00_1b.0.analog-stereo
+Matches:      nothing ships for this laptop
+
+$ pactl list sinks short
+58	alsa_output.pci-0000_00_1b.0.analog-stereo	PipeWire	s32le 2ch 48000Hz	SUSPENDED
+70	omarchy_speaker_tuning	PipeWire	float32le 2ch 48000Hz	SUSPENDED
+
+## P0 -- installed script, unpatched
+$ omarchy audio tuning fronted-sink ; echo exit=$?
+exit=1
+# -> prints nothing: callers cannot hide the physical sink, so selecting it
+#    bypasses the tuning.
+
+## P1 -- patched script, live graph
+$ OMARCHY_PATH=/usr/share/omarchy PATH=/home/hga/odd/omarchy-audio-upstream/publish/omarchy-repo/proof/bin:$PATH omarchy-audio-tuning fronted-sink ; echo exit=$?
+alsa_output.pci-0000_00_1b.0.analog-stereo
+exit=0
+# -> prints the physical sink the tuning feeds, and nothing else.
+
+## P2 -- patched script, resolver stubbed to the idle/unlinked answer
+$ OMARCHY_PATH=/usr/share/omarchy PATH=/home/hga/odd/omarchy-audio-upstream/publish/omarchy-repo/proof/bin-idle:$PATH omarchy-audio-tuning fronted-sink ; echo exit=$?
+exit=1
+# -> exits 1 with no output: the tuning sink is never reported as the sink
+#    to hide, which would have been worse than the bug.
+
+## P3 -- end to end: the consumers that hide the sink
+$ PATH=/home/hga/odd/omarchy-audio-upstream/publish/omarchy-repo/proof/bin:$PATH omarchy-audio-sink-availability
+alsa_output.pci-0000_00_1b.0.analog-stereo	0
+omarchy_speaker_tuning	1
+
+$ omarchy-audio-sink-availability      # unpatched, for contrast
+alsa_output.pci-0000_00_1b.0.analog-stereo	1
+omarchy_speaker_tuning	1
+
+## P3b -- the output switcher's filter, evaluated read-only
+# omarchy-audio-output-switch does not print: it switches, so running it here
+# would move the user's default sink. Its jq filter is applied to the same
+# pactl JSON instead, once with the patched answer and once with the empty
+# answer the unpatched script gives.
+$ fronted='alsa_output.pci-0000_00_1b.0.analog-stereo'
+$ pactl -f json list sinks | jq --arg fronted "$fronted" '<switch filter>' | jq -r '.[].name'
+omarchy_speaker_tuning
+$ fronted=''   # what callers get before the fix
+alsa_output.pci-0000_00_1b.0.analog-stereo
+omarchy_speaker_tuning
+# -> with the fix the physical sink is not a rotation stop; without it, it is.

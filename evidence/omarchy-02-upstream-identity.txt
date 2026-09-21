@@ -1,0 +1,32 @@
+# Upstream quattro is byte-identical to the installed 4.0.4 scripts
+# captured:   2026-09-20T19:19:42+01:00 on omarchy, kernel 7.2.5-3-omarchy
+# capture.sh: odd/omarchy-audio-upstream/evidence/capture.sh (re-runnable, read-only)
+# linux source: torvalds/linux master a10a019dd4c7c57bef6b8dda962c8881ad220af2 (https://raw.githubusercontent.com/torvalds/linux/a10a019dd4c7c57bef6b8dda962c8881ad220af2/)
+# omarchy source: omacom/omarchy quattro e38c1d1289252d2adb96372eeac48d02e489c5b7 (https://raw.githubusercontent.com/omacom/omarchy/quattro/)
+#   omarchy-audio-tuning sha256 dd596e3e4ef30206fb610b708face1b861bab07ca49db5da79a9dc7facbdb162
+#   omarchy-audio-sink-availability sha256 313dacc8fb7c83afcd4e40da37779d6472b23d87052055b19e55af467d53e72b
+#   omarchy-audio-output-sink sha256 23c262e236aed45d2b614d5a309ed38bf42e2ec17974f91effce128085bc49a4
+
+$ omarchy (installed) version
+4.0.0.alpha
+package: omarchy 4.0.4-1
+
+# The installed scripts are compared against the upstream ref fetched above
+# (omacom/omarchy quattro, e38c1d1289252d2adb96372eeac48d02e489c5b7). Byte equality is the
+# claim; the ref name is only how those bytes are addressed.
+
+== omarchy-audio-tuning ==
+installed: dd596e3e4ef30206fb610b708face1b861bab07ca49db5da79a9dc7facbdb162
+upstream : dd596e3e4ef30206fb610b708face1b861bab07ca49db5da79a9dc7facbdb162
+diff      : identical
+
+== omarchy-audio-sink-availability ==
+installed: 313dacc8fb7c83afcd4e40da37779d6472b23d87052055b19e55af467d53e72b
+upstream : 313dacc8fb7c83afcd4e40da37779d6472b23d87052055b19e55af467d53e72b
+diff      : identical
+
+== omarchy-audio-output-sink ==
+installed: 23c262e236aed45d2b614d5a309ed38bf42e2ec17974f91effce128085bc49a4
+upstream : 23c262e236aed45d2b614d5a309ed38bf42e2ec17974f91effce128085bc49a4
+diff      : identical
+
