@@ -88,10 +88,10 @@ shim directories are regenerated on each run and are gitignored.
 
 ## Pull request
 
-Opened as **https://github.com/omacom/omarchy/pull/12842** — branch `fix/fronted-sink-fallback` off `quattro`, one commit, one file (`bin/omarchy-audio-tuning`, +26/-2). The patch is also here as `0001-*.patch` and its message is `commit-message.txt`. The patch is
-also here as `0001-fix-audio-resolve-the-fronted-sink-from-the-running-.patch` and `commit-message.txt`
-is the message it was generated with. The PR body, which doubles as a bug report if an issue is wanted
-first:
+Opened as **https://github.com/omacom/omarchy/pull/12842** — branch `fix/fronted-sink-fallback` off
+`quattro`, one commit, one file (`bin/omarchy-audio-tuning`, +26/-2). The patch is also here as
+`0001-fix-audio-resolve-the-fronted-sink-from-the-running-.patch`, and `commit-message.txt` is the
+message it was generated with. The PR body, which doubles as a bug report if an issue is wanted first:
 
 > `omarchy audio tuning fronted-sink` answers from the shipped tuning that matches the machine
 > (`tuned_hardware_sink` -> `sink_pattern`). A tuning installed by hand has no directory under
