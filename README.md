@@ -1,5 +1,7 @@
 # `omarchy audio tuning fronted-sink` is blind to hand-installed tunings
 
+[![Built with NaN](https://nan.builders/badge/built-with-nan-compact.svg)](https://nan.builders/?ref=built-with-nan)
+
 In [Omarchy](https://github.com/omacom/omarchy), a speaker tuning is a virtual sink in front of the real
 speakers. `omarchy audio tuning fronted-sink` answers "which physical sink is the tuning fronting", and
 two consumers use that answer to keep the physical sink out of the audio panel:
